@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Salary Prediction</h2>
+        <form id="salaryForm">
+            <div class="form-group">
+                <label for="education">Education</label>
+                <select id="education">
+                    <option value="Bachelor">Bachelor</option>
+                    <option value="High School">High School</option>
+                    <option value="PhD">PhD</option>
+                    <option value="Master">Master</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="experience">Experience (Years)</label>
+                <input type="number" id="experience" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Location</label>
+                <select id="location">
+                    <option value="Urban">Urban</option>
+                    <option value="Suburban">Suburban</option>
+                    <option value="Rural">Rural</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="job_title">Job Title</label>
+                <select id="job_title">
+                    <option value="Manager">Manager</option>
+                    <option value="Director">Director</option>
+                    <option value="Analyst">Analyst</option>
+                    <option value="Engineer">Engineer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" required>
+            </div>
+            <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <button type="button" class="btn" onclick="predictSalary()">Predict</button>
+        </form>
+        <h3 id="predictionResult"></h3>
+    </div>
+
+    <script>
+        async function predictSalary() {
+            const formData = {
+                education: document.getElementById("education").value,
+                experience: document.getElementById("experience").value,
+                location: document.getElementById("location").value,
+                job_title: document.getElementById("job_title").value,
+                age: document.getElementById("age").value,
+                gender: document.getElementById("gender").value,
+            };
+
+            const response = await fetch("/predict/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const result = await response.json();
+            document.getElementById("predictionResult").innerHTML = "Predicted Salary: $" + result.predicted_salary;
+        }
+    </script>
+</body>
+</html>

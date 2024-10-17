@@ -1,62 +1,40 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.templating import Jinja2Templates
-import pickle
+from flask import Flask, render_template, request
+import joblib as jb
+import pandas as pd
 import numpy as np
-from starlette.responses import HTMLResponse
-
-# Khởi tạo ứng dụng FastAPI
-app = FastAPI()
-
-# Khởi tạo thư mục chứa templates
-templates = Jinja2Templates(directory="templates")
+from sklearn.preprocessing import OrdinalEncoder
+app = Flask(__name__)
 
 # Tải mô hình đã huấn luyện
-with open('linear_regression_model.pkl', 'rb') as file:
-    model = pickle.load(file)
+models = {}
+model_names = ['linear', 'lasso', 'nn', 'stacking']
+for model_name in model_names:
+    with open(f'{model_name}.pkl', 'rb') as file:
+        models[model_name] = jb.load(file)
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-# Endpoint trang chủ trả về giao diện HTML
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.route('/predict', methods=['POST'])
+def predict():
+    if request.method == 'POST':
+        # Lấy dữ liệu từ form
+        age = int(request.form['age'])
+        Experience = int(request.form['experience'])
+        Education = float(request.form['education'])
+        Location = float(request.form['location'])
+        gender = request.form['gender']
+        Job_Title = float(request.form['job_title'])
+        model_selection = request.form['model']
 
-# Endpoint xử lý form và dự đoán lương
-@app.post("/predict", response_class=HTMLResponse)
-async def predict_salary(
-    request: Request,
-    education: str = Form(...),
-    experience: int = Form(...),
-    location: str = Form(...),
-    job_title: str = Form(...),
-    age: int = Form(...),
-    gender: str = Form(...)
-):
-    # Chuyển đổi dữ liệu đầu vào thành định dạng mô hình yêu cầu (One-Hot Encoding)
-    input_features = np.array([[age, experience, 0, 0, 0, 0, 0, 0, 0, 0]])
+        # Tạo DataFrame từ input
+        input_data = np.array([[ Experience, Education, Job_Title, Location]])
+        input_data_new = pd.DataFrame(input_data)
+        # Dự đoán
+        prediction = models[model_selection].predict(input_data_new)[0]
 
-    # Mã hóa các giá trị phân loại thành dạng one-hot
-    if education == 'Bachelor':
-        input_features[0][2] = 1
-    elif education == 'Master':
-        input_features[0][3] = 1
-    elif education == 'PhD':
-        input_features[0][4] = 1
-    elif education == 'High School':
-        input_features[0][5] = 1
+        # Hiển thị kết quả
+        return render_template('index.html', prediction=round(prediction, 2))
 
-    if location == 'Urban':
-        input_features[0][6] = 1
-    elif location == 'Suburban':
-        input_features[0][7] = 1
-    elif location == 'Rural':
-        input_features[0][8] = 1
-
-    if gender == 'Male':
-        input_features[0][9] = 1
-    else:
-        input_features[0][9] = 0
-
-    # Dự đoán mức lương
-    prediction = model.predict(input_features)[0]
-
-    # Render lại trang HTML với kết quả dự đoán
-    return templates.TemplateResponse("index.html", {"request": request, "prediction": round(prediction, 2)})
+if __name__ == "__main__":
+    app.run(debug=True)

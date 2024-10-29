@@ -2,7 +2,9 @@ from flask import Flask, render_template, request
 import joblib as jb
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OneHotEncoder,StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 app = Flask(__name__)
 
 # Tải mô hình đã huấn luyện
@@ -19,22 +21,37 @@ def home():
 def predict():
     if request.method == 'POST':
         # Lấy dữ liệu từ form
-        age = int(request.form['age'])
+        Age = int(request.form['age'])
         Experience = int(request.form['experience'])
-        Education = float(request.form['education'])
-        Location = float(request.form['location'])
+        Education = (request.form['education'])
+        Location = (request.form['location'])
         gender = request.form['gender']
-        Job_Title = float(request.form['job_title'])
+        Job_Title = (request.form['job_title'])
         model_selection = request.form['model']
 
         # Tạo DataFrame từ input
-        input_data = np.array([[ Experience, Education, Job_Title, Location]])
-        input_data_new = pd.DataFrame(input_data)
-        # Dự đoán
-        prediction = models[model_selection].predict(input_data_new)[0]
-
+        input_data = pd.DataFrame([[ Experience, Education, Job_Title, Location, Age]], columns=["Experience", "Education", "Job_Title", "Location", "Age"])
+        train_data = pd.DataFrame({
+            'Experience': [1,4,5,6],
+            'Education': ['Bachelor', 'Master', 'PhD', 'High School'],
+            'Job_Title': ['Engineer', 'Manager', 'Analyst','Director'],
+            'Location': ['Suburban', 'Urban', 'Rural','Rural'],
+            'Age' : [26,27,29,30]
+        })
+        input_table = pd.concat([input_data,train_data], axis=0)
+        categorical_features = ['Education', 'Location', 'Job_Title']
+        numeric_features = ['Experience', 'Age']
+        preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_features),
+            ('cat', OneHotEncoder(), categorical_features)]
+        )
+        X=input_table
+        input_data_scaler = preprocessor.fit_transform(X)
+        df = pd.DataFrame(input_data_scaler).head(1)
+        prediction = models[model_selection].predict(df)
         # Hiển thị kết quả
-        return render_template('index.html', prediction=round(prediction, 2))
+        return render_template('index.html', prediction=prediction)
 
 if __name__ == "__main__":
     app.run(debug=True)
